@@ -7,7 +7,7 @@
 
 ```
 ChatGPT → https://mcp-你的名字.yourdomain.cn/mcp
-   → 中转服务器 nginx（TLS 终止）
+   → 中转服务器 Caddy（TLS 终止，证书自动签发+续期）
    → SSH 反向隧道
    → 你 Mac 上的 DevSpace
 ```
@@ -41,7 +41,7 @@ cat ~/.ssh/mcp_relay.pub
 > - SSH 用户名：`mcp-你的名字`
 > - 隧道端口：`17677`
 > - 我的域名：`mcp-你的名字.yourdomain.cn`
-> - 服务器 IP：`198.51.100.10`
+> - 服务器 IP：`203.0.113.20`
 > - SSH 私钥已在 `~/.ssh/mcp_relay`（公钥已交给管理员，服务器侧已开通）
 >
 > 请完成：
@@ -49,7 +49,7 @@ cat ~/.ssh/mcp_relay.pub
 > 2. 写 `~/.devspace/config.json`：`host` 127.0.0.1、`port` 7676、`allowedRoots` 设为我的家目录、`publicBaseUrl` 设为 `https://我的域名`。不要跑 `devspace init`（那是交互式 TUI），改为直接调用 DevSpace 自己的 `dist/user-config.js` 里的 `writeDevspaceConfig` / `writeDevspaceAuth` / `generateOwnerToken` 来写，保证格式一致；`auth.json` 里的 `ownerToken` 如果已存在就复用，并把它打印给我
 > 3. 在 `~/.ssh/config` 加一个 `Host mcp-relay`，用上面的 IP、用户名和 `~/.ssh/mcp_relay` 私钥
 > 4. 建两个 launchd（都要 `RunAtLoad` + `KeepAlive`，日志写到 `~/.devspace/logs/`）：
->    - `com.mcp.tunnel`：`/usr/bin/ssh -N -o ExitOnForwardFailure=yes -R <隧道端口>:127.0.0.1:7676 mcp-relay`
+>    - `com.mcp.tunnel`：`/usr/bin/ssh -N -o ExitOnForwardFailure=yes -R 127.0.0.1:<隧道端口>:127.0.0.1:7676 mcp-relay`（🔴 `-R` 必须写成 `127.0.0.1:端口:...` 的完整形式，只写 `端口:` 会被服务器的 `permitlisten` 拒绝，报 `remote port forwarding failed`）
 >    - `com.mcp.devspace`：用 node 绝对路径跑 devspace 的 `dist/cli.js serve`
 >    注意 launchd 的 PATH 极简，plist 里所有路径都要写绝对路径
 > 5. 验证：本地 `127.0.0.1:7676/mcp` 和公网 `https://我的域名/mcp` 都应返回 **401**（401 = 通了但需鉴权；502 = 隧道没起来）
@@ -68,7 +68,7 @@ chmod +x classmate-install.sh && ./classmate-install.sh
 
 ```bash
 MCP_USER=mcp-你的名字 MCP_PORT=17677 \
-MCP_FQDN=mcp-你的名字.yourdomain.cn MCP_SERVER_IP=198.51.100.10 \
+MCP_FQDN=mcp-你的名字.yourdomain.cn MCP_SERVER_IP=203.0.113.20 \
 ./classmate-install.sh
 ```
 
@@ -126,6 +126,6 @@ ps -o pid,lstart,etime -p $(pgrep -f "devspace.*serve" | head -1)
 ## 几件你应该知道的事
 
 - **ChatGPT 能看到什么**：`allowedRoots` 设成了你的家目录，也就是说它能读写 `~` 下的一切——包括 `~/.ssh` 里的私钥、各种配置文件里的 token。想收窄就改 `~/.devspace/config.json` 里的 `allowedRoots`（比如只给某个项目目录），然后 `launchctl kickstart -k gui/$(id -u)/com.mcp.devspace`。
-- **流量经过别人的服务器**：nginx 到隧道之间是明文 HTTP，你的文件内容和命令输出会明文经过中转服务器。服务器管理员在技术上是能看到的。
-- **带宽是共享的**：出网 3 Mbps 大家一起用，别让 ChatGPT 去读几百 MB 的文件，会把所有人卡住。流量套餐 300 GB/月，超了是管理员付钱。
+- **流量经过别人的服务器**：Caddy 到隧道之间是明文 HTTP，你的文件内容和命令输出会明文经过中转服务器。服务器管理员在技术上是能看到的。
+- **带宽是共享的**：出网 30 Mbps 大家一起用，别让 ChatGPT 去读几百 MB 的文件，会把所有人卡住。流量套餐 1536 GB/月，超了是管理员付钱。
 - **你的账号只能建隧道**：SSH 登录会提示 `This account is currently not available`，这是正常的——账号被限制成没有 shell、且只能转发分配给你的那一个端口。

@@ -7,14 +7,35 @@ description: 把本地 Mac/机器通过远程 MCP 暴露给 ChatGPT 或 Claude �
 
 2026-09-09 实战记录。目标：用 **ChatGPT 网页端的额度**（不是 API 计费）驱动本地 Mac 读写文件、跑命令。
 
-最终可用架构：
+最终可用架构（当天晚间定稿，**换成境外机器 + Caddy**）：
 
 ```
 ChatGPT → https://mcp.yourdomain.cn/mcp          真实域名 + 标准 443 + Let's Encrypt
-   → 腾讯云上海轻量 198.51.100.10 的 nginx     TLS 终止
+   → 腾讯云硅谷轻量 203.0.113.20 的 Caddy      境外，无 ICP 拦截；证书自动签发+续期
    → 127.0.0.1:17676                            SSH 反向隧道落点
    → Mac 的 127.0.0.1:7676 → DevSpace           MCP server 本体
 ```
+
+> 下文「一 ~ 八」是当天的完整探索过程，**其中境内服务器 + nginx + certbot 的部分是被推翻的路线**，
+> 保留是因为那些实测边界（ICP 拦截行为、ChatGPT 的 URL 校验规则）本身仍然成立。
+> `scripts/` 里的脚本是按最终架构（Caddy）写的，与下文的 nginx 配置不一致，以脚本为准。
+
+### 换成 Caddy 之后新踩到的三个坑
+
+1. 🔴 **`ssh -R PORT:127.0.0.1:7676` 会被 `permitlisten` 拒绝。** 不带绑定地址时 sshd
+   收到的监听地址是空串，和 `permitlisten="127.0.0.1:PORT"` 匹配不上，报
+   `remote port forwarding failed for listen port PORT`。客户端要写全
+   `-R 127.0.0.1:PORT:127.0.0.1:7676`，服务端两种形式都给上。
+2. 🔴 **DevSpace 的 OAuth 回调白名单默认只有 `chatgpt.com`**，用 Claude 网页端会被 DCR
+   拒成 400 `Client redirect_uri is not allowed`。要设
+   `DEVSPACE_OAUTH_ALLOWED_REDIRECT_HOSTS=chatgpt.com,claude.ai,claude.com,localhost,127.0.0.1`。
+   判据：同一载荷直连本地和经反代返回**一模一样的 400** = 不是反代的问题。
+3. 🔴 **`DEVSPACE_TRUST_PROXY` 是存在的**（下文「三个已知缺陷」里说没有 trust proxy，
+   那条已被推翻）。不设会刷 `ERR_ERL_UNEXPECTED_X_FORWARDED_FOR`；设 `true` 后日志里
+   `ip` 从 `127.0.0.1` 变成真实客户端 IP，即为生效判据。
+
+Caddy 相比 nginx + certbot 的实际好处：**自动续期不用自己配 deploy-hook**，
+一个 snippet + `import /etc/caddy/mcp.d/*.caddy` 就能支持多人各自一个子域名。
 
 ---
 

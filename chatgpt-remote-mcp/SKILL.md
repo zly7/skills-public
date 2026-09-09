@@ -16,8 +16,6 @@ ChatGPT → https://mcp.yourdomain.cn/mcp          真实域名 + 标准 443 + L
    → Mac 的 127.0.0.1:7676 → DevSpace           MCP server 本体
 ```
 
-> 文中所有 IP 和域名均为占位示例：`198.51.100.10` / `203.0.113.20` 是 RFC 5737 文档专用地址（分别代表境内、境外服务器），`yourdomain.cn` 代表你自己的域名。端口号（`7676` / `17676`）、错误码、价格、命令参数都是实测真值，可以照抄。
-
 ---
 
 ## 一、ChatGPT 对 MCP server URL 有隐藏的域名校验（最大的坑）
@@ -280,7 +278,7 @@ recv() failed (104: Connection reset by peer)      → 隧道通了，但 Mac �
 
 ### ssh config 里同名 Host 取先出现的那个
 
-改 `User` 时在文件尾部追加了第二个 `Host tencent-mcp` 块，结果一直用前一个的 `User`，报 `Permission denied` 查了半天。**ssh 是 first-obtained wins，不是后者覆盖。**
+改 `User` 时在文件尾部追加了第二个 `Host relay-admin` 块，结果一直用前一个的 `User`，报 `Permission denied` 查了半天。**ssh 是 first-obtained wins，不是后者覆盖。**
 
 ### Clash TUN 会劫持 DNS 查询和国内 IP
 
@@ -395,11 +393,66 @@ tccli tat DescribeInvocationTasks --HideOutput False \
 
 ---
 
+## 十、多人共用一台中转服务器
+
+把同一台服务器和域名开放给多个人时，每人需要五样东西：独立子域名、证书覆盖、
+nginx server 块、隧道端口、SSH 账号。配套脚本在 [`scripts/`](scripts/)：
+
+| 文件 | 谁用 | 作用 |
+|---|---|---|
+| `add-mcp-user.sh` | 管理员 | 开户：分配端口 → 加 DNS → 建受限用户 → 签证书 → 写 nginx |
+| `classmate-install.sh` | 使用者 | 在自己 Mac 上一键装好 DevSpace + 隧道 + launchd |
+| `setup-for-classmate.md` | 使用者 | 步骤说明，含可直接粘给 AI 的提示词 |
+
+### 🔴 绝对不能让使用者用 root 建隧道
+
+反向隧道只需要「开一个端口转发」这一个能力，给 root 等于送出整台服务器。每人一个受限账号：
+
+```bash
+useradd -m -s /usr/sbin/nologin mcp-alice
+# authorized_keys 里公钥前面加这串前缀：
+restrict,port-forwarding,permitlisten="127.0.0.1:17677",no-agent-forwarding,no-x11-forwarding,no-user-rc
+```
+
+`restrict` 先关掉一切，再单独放开 `port-forwarding`，`permitlisten` 把可监听端口锁死到分配给他的那一个——这样他既进不了 shell，也抢不了别人的端口。配合 `GatewayPorts no`（默认值），隧道端口只在 `127.0.0.1` 上，外部只能经 nginx 进入。
+
+分配端口时扫已有的 `permitlisten` 即可，不用维护额外的记账文件：
+
+```bash
+grep -rhoE 'permitlisten="127.0.0.1:[0-9]+"' /home/*/.ssh/authorized_keys | grep -oE '[0-9]+$' | sort -n
+```
+
+### 密钥流向：让使用者自己生成
+
+使用者跑 `ssh-keygen` 生成密钥对，**只把 `.pub` 发给管理员**。私钥全程不经过任何传输渠道，比管理员生成完再发过去安全得多。
+
+### 签证书不用停服务
+
+如果 80 端口上是 nginx（而不是别的应用），用 **webroot 模式**就不用停任何服务：
+
+```bash
+certbot certonly --webroot -w /var/www/html -d mcp-alice.yourdomain.cn \
+  --non-interactive --agree-tos --register-unsafely-without-email \
+  --deploy-hook "/usr/bin/systemctl reload nginx"
+```
+
+比通配符证书省事——通配符只能走 DNS-01，而单域名 HTTP-01 在开户脚本里一行就搞定。
+
+### 要提前跟使用者讲清楚的三件事
+
+1. **流量明文经过中转服务器**：nginx 到隧道之间是 HTTP，使用者的文件内容和命令输出，服务器管理员技术上看得到
+2. **带宽和账单是共享的**：出网带宽所有人分，超出流量套餐的部分记在管理员账上
+3. **`allowedRoots` 决定 ChatGPT 能碰什么**：默认给家目录就意味着 `~/.ssh` 私钥、各种配置里的 token 都在范围内
+
+---
+
 ## 附：凭据放在哪
 
 本文不含任何活凭据。实际值在本地：
 
 - DevSpace Owner 密码 → `~/.devspace/auth.json` 的 `ownerToken`
-- 隧道 SSH 私钥 → `~/.ssh/tencent_mcp_tunnel`
+- 隧道 SSH 私钥 → `~/.ssh/<你的隧道私钥>`
 - 腾讯云凭据 → `~/.tccli/default.credential`
 - Cloudflare API token → 用完即弃，需要时在 Dashboard 重建
+
+---

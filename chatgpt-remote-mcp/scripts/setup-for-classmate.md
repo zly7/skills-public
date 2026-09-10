@@ -58,6 +58,23 @@ cat ~/.ssh/mcp_relay.pub
 
 ### 方式 B：自己跑脚本
 
+**Windows 用 `classmate-install.ps1`**（PowerShell，不需要管理员）：
+
+```powershell
+.\classmate-install.ps1 -McpUser mcp-你的名字 -McpPort 17681 -McpFqdn mcp-你的名字.yourdomain.cn -McpServerIp 203.0.113.20
+```
+
+私钥不在 `~\.ssh\mcp_relay` 的话，加 `-KeyPath C:\路径\到\私钥`。
+
+🔴 Windows 上有两个必须绕开的坑，脚本里已经处理，自己手写时要注意：
+- **PowerShell 5.1 的 `Set-Content -Encoding utf8` 会写 BOM**，而 Node 的
+  `readFileSync(...,"utf8")` 不剥 BOM，`config.json` 带 BOM 会让 `JSON.parse` 当场抛异常。
+  要用 `[System.IO.File]::WriteAllText($p,$s,(New-Object System.Text.UTF8Encoding $false))`。
+- **`Invoke-WebRequest -SkipHttpErrorCheck` 是 PowerShell 7+ 才有的**，
+  Windows 自带的 5.1 遇到 401 会直接抛异常，得从 `WebException` 里取状态码。
+
+**macOS 用 `classmate-install.sh`**：
+
 把管理员给的四个值填进 `classmate-install.sh` 顶部，然后：
 
 ```bash

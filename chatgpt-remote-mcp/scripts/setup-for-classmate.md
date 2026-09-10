@@ -6,7 +6,7 @@
 你的 Mac 主动连出去建一条反向隧道。
 
 ```
-ChatGPT → https://mcp-你的名字.yourdomain.cn/mcp
+ChatGPT → https://mcp-你的名字.sotalabs.cn/mcp
    → 中转服务器 Caddy（TLS 终止，证书自动签发+续期）
    → SSH 反向隧道
    → 你 Mac 上的 DevSpace
@@ -40,8 +40,8 @@ cat ~/.ssh/mcp_relay.pub
 > 我已有的信息：
 > - SSH 用户名：`mcp-你的名字`
 > - 隧道端口：`17677`
-> - 我的域名：`mcp-你的名字.yourdomain.cn`
-> - 服务器 IP：`203.0.113.20`
+> - 我的域名：`mcp-你的名字.sotalabs.cn`
+> - 服务器 IP：`43.172.80.106`
 > - SSH 私钥已在 `~/.ssh/mcp_relay`（公钥已交给管理员，服务器侧已开通）
 >
 > 请完成：
@@ -61,7 +61,7 @@ cat ~/.ssh/mcp_relay.pub
 **Windows 用 `classmate-install.ps1`**（PowerShell，不需要管理员）：
 
 ```powershell
-.\classmate-install.ps1 -McpUser mcp-你的名字 -McpPort 17681 -McpFqdn mcp-你的名字.yourdomain.cn -McpServerIp 203.0.113.20
+.\classmate-install.ps1 -McpUser mcp-你的名字 -McpPort 17681 -McpFqdn mcp-你的名字.sotalabs.cn -McpServerIp 43.172.80.106
 ```
 
 私钥不在 `~\.ssh\mcp_relay` 的话，加 `-KeyPath C:\路径\到\私钥`。
@@ -85,7 +85,7 @@ chmod +x classmate-install.sh && ./classmate-install.sh
 
 ```bash
 MCP_USER=mcp-你的名字 MCP_PORT=17677 \
-MCP_FQDN=mcp-你的名字.yourdomain.cn MCP_SERVER_IP=203.0.113.20 \
+MCP_FQDN=mcp-你的名字.sotalabs.cn MCP_SERVER_IP=43.172.80.106 \
 ./classmate-install.sh
 ```
 
@@ -101,7 +101,7 @@ MCP_FQDN=mcp-你的名字.yourdomain.cn MCP_SERVER_IP=203.0.113.20 \
 |---|---|
 | 名称 | 随便，比如 `我的Mac` |
 | 连接 | 保持 **服务器 URL**（不要切到「隧道」） |
-| MCP server URL | `https://mcp-你的名字.yourdomain.cn/mcp` |
+| MCP server URL | `https://mcp-你的名字.sotalabs.cn/mcp` |
 | 身份验证 | **OAuth** |
 | ☐ 我了解并希望继续 | 勾上 |
 
@@ -119,7 +119,7 @@ cat ~/.devspace/OWNER_PASSWORD.txt
 
 ```bash
 curl -o /dev/null -w "%{http_code}\n" http://127.0.0.1:7676/mcp -X POST -d '{}'   # 本地
-curl -o /dev/null -w "%{http_code}\n" https://mcp-你的名字.yourdomain.cn/mcp          # 公网
+curl -o /dev/null -w "%{http_code}\n" https://mcp-你的名字.sotalabs.cn/mcp          # 公网
 ```
 
 | 本地 | 公网 | 说明 |

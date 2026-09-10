@@ -8,8 +8,8 @@
 set -euo pipefail
 
 RELAY_HOST="${RELAY_HOST:-relay-admin}"          # ssh 别名，需能 root 登录
-RELAY_IP="${RELAY_IP:-203.0.113.20}"
-DOMAIN="${DOMAIN:-yourdomain.cn}"
+RELAY_IP="${RELAY_IP:-43.172.80.106}"
+DOMAIN="${DOMAIN:-sotalabs.cn}"
 
 NAME="${1:-}"; PUBKEY="${2:-}"
 [[ -n "$NAME" && -n "$PUBKEY" ]] || { echo "用法: $0 <name> \"<ssh 公钥整行>\"" >&2; exit 1; }

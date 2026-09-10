@@ -7,14 +7,14 @@ description: 在 Clash Verge / mihomo 的 TUN + fake-ip 模式下，让某个域
 
 2026-09-09 实战。环境：macOS + Clash Verge Rev（内核 mihomo），**TUN 模式 + fake-ip**。
 
-目标：让 `mcp.yourdomain.cn` 绕过代理直连——它指向的是自建的境外服务器，
+目标：让 `mcp.sotalabs.cn` 绕过代理直连——它指向的是自建的境外服务器，
 而那台服务器上同时跑着自己的代理节点，绕一圈套两层没有意义。
 
 ---
 
 ## 🔴 一、只加 DIRECT 规则**不生效**
 
-这是最大的坑。加了 `DOMAIN-SUFFIX,yourdomain.cn,DIRECT` 之后照样连不上，
+这是最大的坑。加了 `DOMAIN-SUFFIX,sotalabs.cn,DIRECT` 之后照样连不上，
 表现是 `curl: (35) LibreSSL SSL_connect: SSL_ERROR_SYSCALL` 这种**看起来像 TLS 故障**的假象。
 
 根因：fake-ip 模式下 DNS 先返回 `198.18.x.x` 的**假地址**，
@@ -60,8 +60,8 @@ grep -n -A22 'uid: <上一步的uid>' "$D/profiles.yaml" | grep 'script:'
 
 ```js
 function main(config, profileName) {
-  const SUFFIX = "yourdomain.cn";
-  const SERVER = "203.0.113.20/32";
+  const SUFFIX = "sotalabs.cn";
+  const SERVER = "43.172.80.106/32";
 
   // ① fake-ip-filter：让它走真实解析。原始配置可能没有这个键，要新建。
   config.dns = config.dns || {};
@@ -84,7 +84,7 @@ function main(config, profileName) {
 `IP-CIDR` 那条要加 `no-resolve`，否则匹配 IP 规则时会触发一次 DNS 解析，绕回去。
 
 **关于作用域**：别无脑把整个域名后缀设直连。我这次差点踩到——
-`yourdomain.cn` 下面除了 MCP 入口，还挂着 Clash 自己的订阅地址。
+`sotalabs.cn` 下面除了 MCP 入口，还挂着 Clash 自己的订阅地址。
 下手前先 `tccli dnspod DescribeRecordList` / `dig` 看清楚这个后缀下还有什么。
 （我这个场景里所有子域名都指向同一台自建机，整体直连才是对的。）
 
@@ -120,12 +120,12 @@ curl -s --unix-socket /tmp/verge/verge-mihomo.sock http://localhost/connections 
 import sys,json
 for c in json.load(sys.stdin).get('connections',[]):
     m=c.get('metadata',{}); h=m.get('host') or ''
-    if 'yourdomain.cn' in h:
+    if 'sotalabs.cn' in h:
         print(h, '-> 链路', c.get('chains'), '规则', c.get('rule'), c.get('rulePayload',''))
 "
 ```
 
-看到 `链路 ['DIRECT'] 规则 DomainSuffix yourdomain.cn` 才算成。
+看到 `链路 ['DIRECT'] 规则 DomainSuffix sotalabs.cn` 才算成。
 走代理会是 `['🚀 代理', '🇺🇸 某节点']`。
 
 **别拿耗时当判据**：我这次直连 1.06s、强制绑 en0 真直连反而 1.60s，

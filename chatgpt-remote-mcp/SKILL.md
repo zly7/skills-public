@@ -10,8 +10,8 @@ description: 把本地 Mac/机器通过远程 MCP 暴露给 ChatGPT 或 Claude �
 最终可用架构（当天晚间定稿，**换成境外机器 + Caddy**）：
 
 ```
-ChatGPT → https://mcp.yourdomain.cn/mcp          真实域名 + 标准 443 + Let's Encrypt
-   → 腾讯云硅谷轻量 203.0.113.20 的 Caddy      境外，无 ICP 拦截；证书自动签发+续期
+ChatGPT → https://mcp.sotalabs.cn/mcp          真实域名 + 标准 443 + Let's Encrypt
+   → 腾讯云硅谷轻量 43.172.80.106 的 Caddy      境外，无 ICP 拦截；证书自动签发+续期
    → 127.0.0.1:17676                            SSH 反向隧道落点
    → Mac 的 127.0.0.1:7676 → DevSpace           MCP server 本体
 ```
@@ -53,9 +53,9 @@ MCP server https://xxx/mcp does not implement OAuth
 | URL 形式 | 结果 |
 |---|---|
 | `https://198.51.100.10/mcp`（裸 IP） | ✗ 拒绝 |
-| `https://203.0.113.20.sslip.io/mcp`（IP-to-domain 服务） | ✗ 拒绝 |
+| `https://43.172.80.106.sslip.io/mcp`（IP-to-domain 服务） | ✗ 拒绝 |
 | `https://xxx.trycloudflare.com/mcp` | ✓ 接受 |
-| `https://mcp.yourdomain.cn/mcp`（真实注册域名） | ✓ 接受 |
+| `https://mcp.sotalabs.cn/mcp`（真实注册域名） | ✓ 接受 |
 
 `sslip.io` / `nip.io` 这类把 IP 编进域名的服务被拒，推测是因为它们常被用于钓鱼和绕过检测，在信誉黑名单里。
 
@@ -111,7 +111,7 @@ Server: nginx/1.24.0 (Ubuntu)
 
 ### ⚠️ 但拦截不是必然的
 
-`yourdomain.cn`（当天新注册）指向腾讯云上海后，**80 和 443 都没被拦**：443 连打 6 次全是正常 401，80 返回 200 而不是 webblock 页。而同一台机器上 `sslip.io` 域名的 443 是被 reset 的。
+`sotalabs.cn`（当天新注册）指向腾讯云上海后，**80 和 443 都没被拦**：443 连打 6 次全是正常 401，80 返回 200 而不是 webblock 页。而同一台机器上 `sslip.io` 域名的 443 是被 reset 的。
 
 推测新注册域名还没进扫描名单，或者 `sslip.io` 这类服务在黑名单里。**结论：别假设一定被拦，实测一次**；但也别假设永远不被拦，腾讯云会周期性扫描，随时可能开始拦——真被拦了就切 8443。
 
@@ -179,7 +179,7 @@ cd /opt/homebrew/lib/node_modules/@waishnav/devspace && node --input-type=module
 import { writeDevspaceConfig, writeDevspaceAuth, generateOwnerToken, loadDevspaceFiles } from './dist/user-config.js';
 const files = loadDevspaceFiles();
 writeDevspaceConfig({...files.config, host:'127.0.0.1', port:7676,
-  allowedRoots:['/Users/<you>'], publicBaseUrl:'https://mcp.yourdomain.cn'});
+  allowedRoots:['/Users/<you>'], publicBaseUrl:'https://mcp.sotalabs.cn'});
 writeDevspaceAuth({ ownerToken: files.auth.ownerToken ?? generateOwnerToken() });
 "
 ```
@@ -463,7 +463,7 @@ grep -rhoE 'permitlisten="127.0.0.1:[0-9]+"' /home/*/.ssh/authorized_keys | grep
 如果 80 端口上是 nginx（而不是别的应用），用 **webroot 模式**就不用停任何服务：
 
 ```bash
-certbot certonly --webroot -w /var/www/html -d mcp-alice.yourdomain.cn \
+certbot certonly --webroot -w /var/www/html -d mcp-alice.sotalabs.cn \
   --non-interactive --agree-tos --register-unsafely-without-email \
   --deploy-hook "/usr/bin/systemctl reload nginx"
 ```

@@ -1,7 +1,7 @@
 # 在【你自己的 Windows】上跑（PowerShell，不需要管理员）。
 # 做的事：装 DevSpace → 写配置 → 配 SSH → 注册两个「登录时自动启动 + 崩了自动重来」的计划任务
 #
-#   .\classmate-install.ps1 -McpUser mcp-xxx -McpPort 17681 -McpFqdn mcp-xxx.yourdomain.cn
+#   .\classmate-install.ps1 -McpUser mcp-xxx -McpPort 17681 -McpFqdn mcp-xxx.sotalabs.cn
 #
 # Windows 没有 launchd。不注册计划任务的话，重启后一切都不会自己起来。
 
@@ -9,7 +9,7 @@ param(
     [Parameter(Mandatory=$true)][string]$McpUser,
     [Parameter(Mandatory=$true)][int]   $McpPort,
     [Parameter(Mandatory=$true)][string]$McpFqdn,
-    [string]$McpServerIp = "203.0.113.20",
+    [string]$McpServerIp = "43.172.80.106",
     [string]$KeyPath = ""
 )
 

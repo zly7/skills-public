@@ -6,8 +6,8 @@ set -euo pipefail
 # ── 把管理员给你的值填这里 ──────────────────────────
 MCP_USER="${MCP_USER:-}"                          # 例：mcp-alice
 MCP_PORT="${MCP_PORT:-}"                          # 例：17677
-MCP_FQDN="${MCP_FQDN:-}"                          # 例：mcp-alice.yourdomain.cn
-MCP_SERVER_IP="${MCP_SERVER_IP:-203.0.113.20}"
+MCP_FQDN="${MCP_FQDN:-}"                          # 例：mcp-alice.sotalabs.cn
+MCP_SERVER_IP="${MCP_SERVER_IP:-43.172.80.106}"
 # ────────────────────────────────────────────────
 
 # 允许 ChatGPT / Claude 网页端的 OAuth 回调（DevSpace 默认只放行 chatgpt.com）

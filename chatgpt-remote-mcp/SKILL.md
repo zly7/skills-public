@@ -206,13 +206,24 @@ location = /.well-known/oauth-authorization-server/mcp {
 
 2. **没开 express 的 `trust proxy`**，经反代进来的请求限流全算成同一个 IP（`127.0.0.1`）。公网扫描器和真实客户端共用一份配额，扫得凶时可能把正常请求也限掉。
 
-3. **🔴 OAuth 状态全存在内存里，进程一重启授权就作废。**
+3. ~~OAuth 状态全存在内存里，进程一重启授权就作废。~~
+   **🔴 这条是错的，2026-09-10 已推翻。** OAuth 状态**持久化在 SQLite** 里，
+   进程重启、机器重启都不用重新授权。
 
-```bash
-ls ~/.devspace/       # 只有 config.json 和 auth.json，没有任何 sqlite/db 文件
-```
+   当初的错误在于**只看了 `~/.devspace/`**（那里确实只有 config.json 和 auth.json），
+   而数据库在 DevSpace 的 stateDir —— `~/.local/share/devspace/devspace.sqlite`：
 
-后果很隐蔽：launchd 配了 `KeepAlive`，DevSpace 崩溃会被自动拉起——**进程看着是活的，但客户端那边已经掉线**，表现出来就是「刚刚还能用，现在连不上」。每次改配置做 `kickstart` 也一样会踢掉已授权的客户端。
+   ```bash
+   sqlite3 ~/.local/share/devspace/devspace.sqlite ".tables"
+   # oauth_clients  oauth_access_tokens  oauth_refresh_tokens  workspace_sessions ...
+   ```
+
+   判据：查 `oauth_clients` 的 `issued_at`，如果有早于当前进程启动时刻（`ps -o lstart`）
+   的记录，就说明跨重启存活了。access token 默认 **1 小时**、refresh token **30 天**，
+   过期靠 refresh 自动续，不需要人工介入。
+
+   🔴 **教训：判断"有没有持久化"别只看一个目录就下结论**，去代码里找 stateDir
+   （`dist/config.js` 的 `defaultStateDir()`）才靠谱。
 
 排查时先确认进程有没有重启过，别一上来查网络：
 

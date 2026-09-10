@@ -111,15 +111,37 @@ curl -o /dev/null -w "%{http_code}\n" https://mcp-你的名字.yourdomain.cn/mcp
 | 401 | 502 | 隧道断了 → `launchctl kickstart -k gui/$(id -u)/com.mcp.tunnel` |
 | 失败 | 502 | DevSpace 没起 → 看 `~/.devspace/logs/serve.err` |
 
-**「刚刚还能用，现在连不上」** —— 这是最常见的情况，八成是 **DevSpace 重启了**。它的 OAuth 授权全存在内存里（`~/.devspace/` 下没有任何数据库文件），进程一重启，ChatGPT 那边的授权就作废，但进程本身是活的，所以看起来一切正常。
+**「刚刚还能用，现在连不上」** —— 先按上面那张表定位是哪一段断的，绝大多数是**隧道断了**（公网 502）。
+
+**不需要重新授权。** OAuth 状态持久化在 `~/.local/share/devspace/devspace.sqlite`，
+DevSpace 重启、电脑重启都不影响，refresh token 有 30 天。
+（早期版本的文档说过"存内存、重启要删了重加 connector"，那是**错的**，已更正。）
+
+**🔴 电脑重启后要不要手动操作？**
+
+| 环节 | 重启后 |
+|---|---|
+| 中转服务器 | 全自动（Caddy 和服务端组件都是 systemd enabled） |
+| 你的 DevSpace + 隧道 | launchd 是 `RunAtLoad` + `KeepAlive`，**但在 `gui/<uid>` 域，要等你登录才跑** |
+| ChatGPT 里的授权 | 不用动，自动恢复 |
+
+也就是说：**重启后停在登录界面时是断的，你一登录就自动全起来**，不用敲任何命令。
+开了自动登录就是全自动。
+
+**🔴 睡眠才是真正的坑。** Mac 睡了隧道就断，人不在旁边也没法唤醒。先看你的设置：
 
 ```bash
-ps -o pid,lstart,etime -p $(pgrep -f "devspace.*serve" | head -1)
+pmset -g | grep -E '^\s*sleep'
 ```
 
-启动时刻如果晚于你上次成功用它的时间 —— 就是它。**去 ChatGPT 里把 connector 删掉重加一次**即可。
+`sleep` 不是 0 就会自动睡。要长期挂着：
 
-**Mac 睡眠 = 断线。** 隧道会断，ChatGPT 立刻用不了；唤醒后 launchd 会自动重连，但可能要重新授权。要长期挂着就别让它休眠。
+```bash
+sudo pmset -c sleep 0      # 插电时不休眠（-a 是电池也不睡，会耗电）
+```
+
+注意 `pmset -g` 可能显示 `sleep prevented by ...` —— 那是某个 App 临时占着不让睡，
+**关掉那个 App 就会睡**，不能当成已经设置好了。
 
 ---
 

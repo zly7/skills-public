@@ -143,7 +143,28 @@ DevSpace 重启、电脑重启都不影响，refresh token 有 30 天。
 | ChatGPT 里的授权 | 不用动，自动恢复 |
 
 也就是说：**重启后停在登录界面时是断的，你一登录就自动全起来**，不用敲任何命令。
-开了自动登录就是全自动。
+
+**想做到「开机就跑，连登录都不用」**，macOS 上有两条路：
+
+| | 做法 | 代价 |
+|---|---|---|
+| A | 系统设置 → 用户与群组 → **自动登录** | 任何人重启机器就直接进桌面 |
+| B | 把 plist 从 `~/Library/LaunchAgents/` 搬到 **`/Library/LaunchDaemons/`**，加 `<key>UserName</key>` 指定以自己的身份运行 | 没有图形会话，TCC 相关功能要留意 |
+
+B 更安全（锁屏还在），关键点：
+
+- 必须先 `launchctl bootout gui/$(id -u)/<label>` 并把用户域的 plist 挪走，
+  否则登录后两份会一起跑，抢同一个端口。
+- plist 属主 `root:wheel`、权限 `644`，用 `sudo launchctl bootstrap system /Library/LaunchDaemons/xxx.plist` 加载。
+- 开机时**网络可能还没就绪**，ssh 会失败退出——靠 `KeepAlive` + `ThrottleInterval` 重试即可，不用特意等网络。
+- 🔴 要给 node 加**完全磁盘访问**（读 `~/Desktop` `~/Documents` 等 TCC 保护目录）时，
+  授权对象是解析后的真实路径（`readlink -f $(which node)`，形如
+  `/opt/homebrew/Cellar/node/<版本>/bin/node`）。**brew 升级 node 后版本号一变，
+  TCC 授权和 plist 里的路径都要重做。**
+
+Windows 对应的是**计划任务**（`classmate-install.ps1` 已经注册好），触发器是「登录时」。
+要做到开机即跑，把触发器改成「启动时」并在任务属性里勾「不管用户是否登录都要运行」——
+那需要存储账户密码，取舍和 macOS 的自动登录类似。
 
 **🔴 睡眠才是真正的坑。** Mac 睡了隧道就断，人不在旁边也没法唤醒。先看你的设置：
 

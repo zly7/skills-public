@@ -1,0 +1,5 @@
+# Use your own dedicated hostname. Preserve the incoming Host and Origin headers.
+mail-mcp.example.com {
+    reverse_proxy 127.0.0.1:3000
+    # Keep access logging disabled: /authorize URLs contain OAuth transaction data.
+}

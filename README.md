@@ -8,6 +8,7 @@
 
 | Skill | 说明 |
 |---|---|
+| [email-mcp](email-mcp/SKILL.md)<br>[安装说明](email-mcp/README.md) · [可转发安装提示词](email-mcp/INSTALL_PROMPT.md) | 独立部署的单所有者 QQ 邮箱 MCP：IMAP/SMTP、HTTPS Streamable HTTP、S256 PKCE OAuth 与受限 DCR。保留读取、搜索、附件读取、发送、标记、移动等工具，默认只读；不含真实账号、授权码或私有服务配置。 |
 | [chatgpt-remote-mcp](chatgpt-remote-mcp/SKILL.md)<br>[scripts/](chatgpt-remote-mcp/scripts/) | 2026-09-11 维护版 Remote MCP runbook。覆盖 `does not implement OAuth` 多根因诊断树、`invalid_client` / owner credential / authorization expired、DevSpace OAuth SQLite 持久化、`DEVSPACE_TRUST_PROXY`、MCP 2026-07-28 的 DCR→CIMD 迁移、refresh token / `offline_access`、OpenAI Secure MCP Tunnel、Caddy + reverse SSH 与开机保活。`scripts/` 保留多人共用中转机的安装/开户脚本。 |
 | [playwright-remote-mcp](playwright-remote-mcp/SKILL.md) | 把官方 `@playwright/mcp` 独立部署为远程浏览器 MCP。重点解释 Playwright MCP ≠ OAuth gateway ≠ shell/files MCP ≠ CUA；包含 `:8931/mcp`、公网 auth gateway、`invalid_client`、authorization request 过期、HTTP heartbeat/session、独立 FQDN/relay port、浏览器 profile 与四级验收。 |
 | [clash-direct-routing](clash-direct-routing/SKILL.md) | 在 Clash Verge / mihomo 的 TUN + fake-ip 模式下让某个域名真正直连。含「只加 DIRECT 规则不生效、必须同时写 `fake-ip-filter`」的根因、如何认准当前生效的那个 script 文件、热重载方式，以及 TUN 开着时 `nc -z`/`dig`/`curl --interface` 全给假信号的判据。 |
@@ -29,3 +30,4 @@
 
 不含任何活凭据：没有私钥、owner password、API key、refresh token、cookie 或他人的公钥。
 中转服务器上每个用户应使用独立受限账号（`restrict` + `permitlisten` 锁单端口、无 shell）。
+
